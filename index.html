@@ -6,7 +6,7 @@
 <script>
 /* ===== 앱 연결 블록 =====
    GAME_API: Apps Script 웹 앱 주소 (배포 → 배포 관리에서 복사). 주소가 바뀌면 이 줄만 고치면 돼요. */
-var GAME_API = '여기에 웹 앱 주소를 붙여 넣어요';
+var GAME_API = 'https://script.google.com/macros/s/AKfycbyIZFRfFzw1CxQVlUGipbgrTUoXPoOvkNB-Zo5Yp3ha5YIlCOwdy7ix9xaSQrDFasDo/exec';
 var APP_BUILD = '4';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
  var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})}
