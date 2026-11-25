@@ -7,7 +7,7 @@
 /* ===== 앱 연결 블록 =====
    GAME_API: Apps Script 웹 앱 주소 (배포 → 배포 관리에서 복사). 주소가 바뀌면 이 줄만 고치면 돼요. */
 var GAME_API = 'https://script.google.com/macros/s/AKfycbyIZFRfFzw1CxQVlUGipbgrTUoXPoOvkNB-Zo5Yp3ha5YIlCOwdy7ix9xaSQrDFasDo/exec';
-var APP_BUILD = '8';
+var APP_BUILD = '9';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
  var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})}
 </script>
@@ -292,6 +292,7 @@ input,textarea,select{user-select:text!important;-webkit-user-select:text!import
 /* 키보드가 올라와 화면이 줄어도 첫 화면이 잘리지 않고 밀어서 볼 수 있게 */
 #title{overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important}
 #title>:first-child{margin-top:auto}#title>:last-child{margin-bottom:auto}
+#mapTip{top:27%!important}
 </style></head>
 <body>
 <div id="app">
@@ -679,22 +680,23 @@ function loop(now=0){
  monsTick(now);draw(now);goalTick(now);
 }
 function draw(now){
- const W=cv.width,H=cv.height;const [rx,ry,rp]=rpos(now);const tgt=Math.max(0,Math.min(MH*TS-H,ry*TS-H*.55));camY+=(tgt-camY)*.2;const tx=MW*TS<=W?-(W-MW*TS)/2:Math.max(0,Math.min(MW*TS-W,rx*TS+TS/2-W/2));camX+=(tx-camX)*.2;if(Math.abs(tx-camX)<1)camX=tx;if(Math.abs(tgt-camY)<1)camY=tgt;const CX=Math.round(camX),CY=Math.round(camY);
- cx.setTransform(1,0,0,1,-CX,-CY);const Y0=Math.max(0,Math.floor(CY/TS)-1),Y1=Math.min(MH,Math.ceil((CY+H)/TS)+1),X0=Math.max(0,Math.floor(CX/TS)-1),X1=Math.min(MW,Math.ceil((CX+W)/TS)+1);cx.fillStyle=(typeof HAND!=='undefined'&&HAND)?'#a3c97c':'#2f5a2a';cx.fillRect(CX,CY,W,H);
+ const W=cv.width,H=cv.height;const [rx,ry,rp]=rpos(now);const TP=(typeof HAND!=='undefined'&&HAND)?TS*1.15:0,BP=(typeof HAND!=='undefined'&&HAND)?TS*2.4:0;const tgt=Math.max(-TP,Math.min(MH*TS-H+BP,ry*TS-H*.55));camY+=(tgt-camY)*.2;const tx=MW*TS<=W?-(W-MW*TS)/2:Math.max(0,Math.min(MW*TS-W,rx*TS+TS/2-W/2));camX+=(tx-camX)*.2;if(Math.abs(tx-camX)<1)camX=tx;if(Math.abs(tgt-camY)<1)camY=tgt;const CX=Math.round(camX),CY=Math.round(camY);
+ cx.setTransform(1,0,0,1,-CX,-CY);const Y0=Math.max(0,Math.floor(CY/TS)-1),Y1=Math.min(MH,Math.ceil((CY+H)/TS)+1),X0=Math.max(0,Math.floor(CX/TS)-1),X1=Math.min(MW,Math.ceil((CX+W)/TS)+1);cx.fillStyle=(typeof HAND!=='undefined'&&HAND)?(thm()==='cave'?'#4b4560':'#a3c97c'):'#2f5a2a';cx.fillRect(CX,CY,W,H);
  const A3=!!window.ART3D;cx.imageSmoothingEnabled=A3;cx.imageSmoothingQuality='high';const wf=Math.floor(now/600)%2,tf=Math.floor(now/450)%2;
  const isW=(x,y)=>'WY'.includes(tile(x,y))&&y>=0&&y<MH,isP=(x,y)=>':SK='.includes(tile(x,y));
  const D=(n,x,y,w=1,h=1,al)=>{if(HAND&&handProp(n,x,y,w,h,al,now))return;const i=im(n);if(!i.complete||!i.naturalWidth)return;if(al!=null)cx.globalAlpha=al;if(A3&&w*i.naturalHeight/i.naturalWidth!==h&&h!==1||A3&&/^(tree|pine|apple|bigtree|bush|mush|sign|fence)$/.test(n)){const ww=TS*w*(n==='bigtree'?1.15:n==='bush'||n==='mush'?1.1:1.25),hh=ww*i.naturalHeight/i.naturalWidth;cx.drawImage(i,x*TS+TS/2-ww/2,y*TS+TS-hh+TS*.08,ww,hh)}else cx.drawImage(i,x*TS+(1-w)*TS/2,y*TS+TS-TS*h,TS*w,TS*h);cx.globalAlpha=1};
  if(!(HAND&&handGround(CX,CY,W,H)))for(let y=Y0;y<Y1;y++)for(let x=X0;x<X1;x++)groundTile(x,y,wf,D);
  const props=[];for(let y=Y0;y<Math.min(MH,Y1+3);y++)for(let x=X0;x<X1;x++){const t=tile(x,y),o=M.chests[x+','+y];
   const th=A_().theme?A_().theme(x,y):null,TH=thm();const Q={T:[themeTree(th,x,y),1,1.5],P:[TH==='cave'?'crystal':'pine_'+TH,1,1.5],O:['bigtree_'+TH,2,2.5],B:['bush',1,1],Q:['reeds',1,1],R:['rock',1,1],U:['stump',1,1],L:['log',1,1],H:['fence',1,1],N:['lantern',1,1.5],A:['tent',2,1.5],G:['tall_'+TH+'_'+tf,1,1]}[t];
-  if(Q)props.push([y+(t==='G'?.5:0),Q[0],x,y,Q[1],Q[2]]);if(t==='S'&&!M.sign)props.push([y,'sign',x,y,1,1]);
+  if(Q)props.push([y+(t==='G'?((typeof HAND!=='undefined'&&HAND)?0:.5):0),Q[0],x,y,Q[1],Q[2]]);if(t==='S'&&!M.sign)props.push([y,'sign',x,y,1,1]);
   if(t==='C'){const d=dist(x,y,M.px,M.py);props.push([y,o?'chest1':'chest0',x,y,1,1,o?.55:d<=2?1:.4])}}
  areaTint();
+ if(HAND)for(const y of[-2,-1,MH,MH+1,MH+2])for(let x=X0;x<X1;x++){const th=A_().theme?A_().theme(x,Math.max(0,Math.min(MH-1,y))):null;props.push([y,themeTree(th,x,y),x,y,1,1.5])}
  for(const d of A_().deco||[])props.push([d[1]+.9,d[2],d[0],d[1],1,1]);
  for(const b of A_().bld||[])props.push([b.y+b.h-.1,b.k,b.x+(b.w-1)/2,b.y+b.h-1,b.w,b.h+1.25]);
  for(const n of A_().npc||[])props.push(n.h?[n.y+.05,'h_'+n.h+'_f',n.x,n.y,30/32,47/32]:[n.y+.05,'b_n17',n.x,n.y,1.6,1.5]);
- props.sort((a,b)=>a[0]-b[0]).forEach(([_,n,x,y,w,h,al])=>D(n,x,y,w,h,al));
- themeFx(now);
+ window.HPOS={x:rx*TS+TS/2,top:(ry+1)*TS-TS*1.62,bot:(ry+1)*TS-TS*.25,ry};
+ const PS=props.sort((a,b)=>a[0]-b[0]);let PI=0;const drawTo=k=>{while(PI<PS.length&&PS[PI][0]<k){const [_,n,x,y,w,h,al]=PS[PI++];D(n,x,y,w,h,al)}};
  if(!M.boss&&areaId()==='forest'){const b=im('boss_f');if(b.complete&&b.naturalWidth){const w=32*PK;cx.imageSmoothingEnabled=true;cx.globalAlpha=M.fog[1*MW+5]?1:.35;cx.drawImage(b,5*TS+TS/2-w/2,TS*2-w,w,w);cx.globalAlpha=1}}
  for(const m of M.mons){const d=dist(m.x,m.y,M.px,M.py),X=m.x*TS,Y=m.y*TS,seen=M.fog[m.y*MW+m.x];if(!seen)continue;
   const inTall=tile(m.x,m.y)==='G';const t=now/90+m.x*7;
@@ -705,13 +707,15 @@ function draw(now){
   else if(d<=2){cx.fillStyle='rgba(30,60,30,.16)';cx.beginPath();cx.ellipse(X+TS/2,Y+TS*.78,TS*.3,TS*.12,0,0,7);cx.fill()}
   if(m.shiny&&Math.sin(now/260+m.y*5)>.93){cx.fillStyle='rgba(255,255,210,.95)';const u=Math.max(2,TS/14);cx.fillRect(X+TS*.6,Y+TS*.2,u,u);cx.fillRect(X+TS*.6-u,Y+TS*.2+u,u*3,u*0+u);}}
  const SZ=A3?TS*1.45:24*PK,bob=0,wk=mv?1+Math.floor(now/(STEP/2))%2:0;cx.imageSmoothingQuality='high';
- const f0=M.trail[0];if(f0&&SV.team[0]){const fx=mv?f0[0]+(M.px-f0[0])*rp:f0[0],fy=mv?f0[1]+(M.py-f0[1])*rp:f0[1];const L0=SV.team[0],fi=im(SP[L0.sp].bari+(L0.stage>1?'_'+L0.stage:''));cx.imageSmoothingEnabled=!!window.MONK;cx.imageSmoothingQuality='high';
+ const drawFol=()=>{const f0=M.trail[0];if(f0&&SV.team[0]){const fx=mv?f0[0]+(M.px-f0[0])*rp:f0[0],fy=mv?f0[1]+(M.py-f0[1])*rp:f0[1];const L0=SV.team[0],fi=im(SP[L0.sp].bari+(L0.stage>1?'_'+L0.stage:''));cx.imageSmoothingEnabled=!!window.MONK;cx.imageSmoothingQuality='high';
   if(fi.complete&&fi.naturalWidth){const hh=Math.round(TS*(.62+.12*L0.stage)),fz=Math.round(hh*fi.naturalWidth/fi.naturalHeight),hop=mv?Math.round(Math.abs(Math.sin(now/STEP*Math.PI))*PK):0;cx.drawImage(fi,Math.round(fx*TS+TS/2-fz/2),Math.round(fy*TS+TS-hh+PK)-hop,fz,hh)}
-  const near=M.mons.some(m=>dist(m.x,m.y,M.px,M.py)<=2)||grassC();if(near){cx.fillStyle='#ffdf3c';cx.strokeStyle='#2c1e38';cx.lineWidth=PK;cx.font=`${TS*.6}px Jua`;cx.textAlign='center';const ty=Math.round(fy*TS+TS-TS*(.62+.12*L0.stage)-PK*2+Math.sin(now/150)*PK);cx.strokeText('!',Math.round(fx*TS+TS/2),ty);cx.fillText('!',Math.round(fx*TS+TS/2),ty)}}
- {const dk=face==='_b'?'b':face==='_s'?'s':'f',ph=mv?Math.floor(now/(STEP/2))%4:1,fr={f:['fL','f','fR','f'],b:['bL','b','bR','b'],s:['sA','s','sB','s']}[dk][ph];
+  const near=M.mons.some(m=>dist(m.x,m.y,M.px,M.py)<=2)||grassC();if(near){cx.fillStyle='#ffdf3c';cx.strokeStyle='#2c1e38';cx.lineWidth=PK;cx.font=`${TS*.6}px Jua`;cx.textAlign='center';const ty=Math.round(fy*TS+TS-TS*(.62+.12*L0.stage)-PK*2+Math.sin(now/150)*PK);cx.strokeText('!',Math.round(fx*TS+TS/2),ty);cx.fillText('!',Math.round(fx*TS+TS/2),ty)}}};
+ const drawHero=()=>{{const dk=face==='_b'?'b':face==='_s'?'s':'f',ph=mv?Math.floor(now/(STEP/2))%4:1,fr={f:['fL','f','fR','f'],b:['bL','b','bR','b'],s:['sA','s','sB','s']}[dk][ph];
   if(HAND&&handHero(rx,ry,dk,now)){}else{const h=im('h_'+SV.hero+'_'+fr);cx.imageSmoothingEnabled=false;
   if(h.complete&&h.naturalWidth){const k=PK/2,w=h.naturalWidth*k,hh=h.naturalHeight*k,X=Math.round(rx*TS+TS/2-w/2),Y=Math.round(ry*TS+TS-hh+PK);
-   if(flip&&face==='_s'){cx.save();cx.translate(X+w,Y);cx.scale(-1,1);cx.drawImage(h,0,0,w,hh);cx.restore()}else cx.drawImage(h,X,Y,w,hh)}}}
+   if(flip&&face==='_s'){cx.save();cx.translate(X+w,Y);cx.scale(-1,1);cx.drawImage(h,0,0,w,hh);cx.restore()}else cx.drawImage(h,X,Y,w,hh)}}}};
+ {const f1=M.trail[0];const fk=f1?(mv?f1[1]+(M.py-f1[1])*rp:f1[1])+.5:-99;const A=[[fk,drawFol],[ry+.5,drawHero]].sort((a,b)=>a[0]-b[0]);for(const [kk,fn] of A){drawTo(kk);fn()}drawTo(1e9)}
+ themeFx(now);
  for(let y=Y0;y<Y1;y++)for(let x=X0;x<X1;x++)if(!M.fog[y*MW+x]){cx.fillStyle='rgba(18,40,22,.6)';cx.fillRect(x*TS,y*TS,TS,TS)}
  caveDark(); npcMarks(now);exitLabels();goalDraw(now);
 }
@@ -1095,11 +1099,15 @@ function A_(){return AREAS[areaId()]}
 function setArea(id,px,py){SV.area=id;SV.maps=SV.maps||{};const a=AREAS[id];MAP=a.map;MW=MAP[0].length;MH=MAP.length;
  if(!SV.maps[id])SV.maps[id]=newMapState();SV.map=SV.maps[id];M=SV.map;if(id==='village')M.fog.fill(1);if(px!=null){M.px=px;M.py=py;M.trail=[[px,py]]}}
 function goArea(id,px,py){path=[];mv=null;setArea(id,px,py);camX=camY=-1e5;if(!M.mons||!M.mons.length)spawnAll();resize();reveal();mapInfo();
- const e=$('#mapTip');e.textContent='📍 '+AREAS[id].n;setTimeout(()=>{if(e.textContent==='📍 '+AREAS[id].n)e.textContent=''},2200);save()}
-function bldAt(x,y){return (A_().bld||[]).find(b=>x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h||b.door[0]===x&&b.door[1]===y)}
+ const e=$('#mapTip');e.style.setProperty('top',(M.py<7?'64%':'27%'),'important');e.textContent='📍 '+AREAS[id].n;setTimeout(()=>{if(e.textContent==='📍 '+AREAS[id].n)e.textContent=''},2200);save()}
+/* 건물은 건물 몸통을 누르거나, 문 앞에서 위로 갈 때만 들어가요 (문 앞을 지나가기만 하면 들어가지 않아요) */
+function bldAt(x,y){return (A_().bld||[]).find(b=>x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h)}
 function npcAt(x,y){return (A_().npc||[]).find(n=>n.x===x&&n.y===y)}
 function bldGo(i){const b=A_().bld[i];if(b.act==='shelter'){leaveMap();return}if(b.act==='shop'){FROM='map';shopScr();return}if(b.act==='lab'){FROM='map';labTalk()}}
-function labTalk(){ov(`<div class="card rvc"><img class="rvimg" src="${IMG('h_npc_dr_f')}"><div class="rvn" style="color:#3a7a3a">바름 박사</div><div class="rvt">받침 숲에는 바르미가 25마리나 산단다.<br>오솔길, 습지, 동굴, 언덕… 장소마다 사는 친구가 달라!<br>도감을 다 채우면 전설의 정음새를 만날 수 있다는구나.</div><div class="grid2"><button class="btn w sm" onclick="ovOff();FROM='map';dexScr()">📖 도감 보기</button><button class="btn sm" onclick="ovOff()">고마워요</button></div></div>`)}
+function labTalk(){const c=Object.values(SV.dex||{}).filter(d=>d.caught).length,s=Object.values(SV.dex||{}).filter(d=>d.seen).length;
+ ov(`<div class="card"><div style="font-size:20px">🔬 바름 박사 연구소</div><div class="small" style="margin:6px 0 10px">박사님은 지금 분수대 옆에 나가 계셔요.<br>책상 위에 연구 노트가 펼쳐져 있어요.</div>
+ <div class="card" style="background:#fff8e6;margin:0 0 10px"><div style="font-size:16px">📓 받침 숲 바르미 연구 노트</div><div style="font-size:22px;margin:4px 0">데려온 친구 ${c} / 25</div><div class="small">본 친구 ${s}마리 · 오솔길, 습지, 동굴, 언덕마다 사는 친구가 달라요.<br>도감을 다 채우면 전설의 정음새를 만날 수 있대요.</div></div>
+ <div class="grid2"><button class="btn w sm" onclick="ovOff();FROM='map';dexScr()">📖 도감 보기</button><button class="btn sm" onclick="ovOff()">나가기</button></div></div>`)}
 const RUMORS=['오늘은 강가 풀숲에 쌍쌍몬이 자주 보인대!','꽃이 핀 풀숲 근처를 잘 살펴봐. 꼬불몬이 숨어 있을지도 몰라.','오후 3시가 지나면 간판 너머 풀숲에 겹겹몬이 나온다는 소문이 있어.','오솔길 나무 위에서 다람몬을 봤다는 아이가 있었어.','반짝이는 몬은 아주 드물게 나온대. 끝까지 찾아봐!'];
 function npcTalk(id){const n=(A_().npc||[]).find(x=>x.id===id);if(!n)return;busy=true;SV.quests=SV.quests||{};
  const face=`<img class="rvimg" src="${IMG('h_'+n.h+'_f')}"><div class="rvn" style="color:#3a5a9a">${esc(n.n)}</div>`;
@@ -1149,7 +1157,7 @@ function goalTick(now){if(!CFG.guide||busy){$('#goal')&&($('#goal').style.displa
 function goalDraw(now){if(!CFG.guide||!GOAL||GOAL.x==null)return;const x=GOAL.x*TS+TS/2,y=GOAL.y*TS-TS*.9+Math.sin(now/180)*TS*.15;
  cx.fillStyle='#ffdf3c';cx.strokeStyle='#2c1e38';cx.lineWidth=Math.max(2,TS/16);cx.beginPath();cx.moveTo(x-TS*.28,y-TS*.3);cx.lineTo(x+TS*.28,y-TS*.3);cx.lineTo(x,y+TS*.05);cx.closePath();cx.fill();cx.stroke()}
 function npcMarks(now){for(const n of questNpcs()){const x=n.x*TS+TS/2,y=n.y*TS-TS*.75+Math.sin(now/200)*TS*.08;cx.font=`${TS*.55}px Jua`;cx.textAlign='center';cx.lineWidth=Math.max(3,TS/10);cx.strokeStyle='#2c1e38';cx.fillStyle='#ffdf3c';cx.strokeText('!',x,y);cx.fillText('!',x,y)}}
-function exitLabels(){cx.font=`${TS*.36}px Jua`;cx.textAlign='center';for(const e of A_().exits||[]){const t=(e.y===0?'▲ ':e.y===MH-1?'▼ ':e.x===0?'◀ ':'▶ ')+AREAS[e.to].n.split(' (')[0]+(e.need&&subN()<CFG.gateBadges?' 🔒':'');const x=e.x===0?TS*1.6:e.x===MW-1?(MW-1.6)*TS:e.x*TS+TS/2,y=e.y===0?TS*1.7:e.y===MH-1?e.y*TS+TS*.45:e.y*TS-TS*.3;const w=cx.measureText(t).width+TS*.3;
+function exitLabels(){cx.font=`${TS*.36}px Jua`;cx.textAlign='center';for(const e of A_().exits||[]){const t=(e.y===0?'▲ ':e.y===MH-1?'▼ ':e.x===0?'◀ ':'▶ ')+AREAS[e.to].n.split(' (')[0]+(e.need&&subN()<CFG.gateBadges?' 🔒':'');const x=e.x===0?TS*1.6:e.x===MW-1?(MW-1.6)*TS:e.x*TS+TS/2,y=e.y===0?TS*.55:e.y===MH-1?e.y*TS+TS*.45:e.y*TS-TS*.3;const w=cx.measureText(t).width+TS*.3;
  cx.fillStyle='rgba(44,30,56,.72)';cx.fillRect(x-w/2,y-TS*.36,w,TS*.5);cx.fillStyle='#fff';cx.fillText(t,x,y)}}
 function areaTint(){const th=A_().theme;if(!th)return;for(let y=0;y<MH;y++){const t=th(0,y).tint;if(!t)continue;cx.fillStyle=t;cx.fillRect(0,y*TS,MW*TS,TS)}}
 /* 전투 첫걸음 도움말 */
@@ -1382,6 +1390,8 @@ function handProp(n,x,y,w,h,al,now){const p=hpick(n);if(!p)return false;const i=
  let ww=TS*p[1],hh=ww*i.naturalHeight/i.naturalWidth;if(p[2]){hh=TS*1.55;ww=hh*i.naturalWidth/i.naturalHeight}
  if(/^bld_/.test(n)){ww=Math.min(ww,TS*w*1.02);hh=ww*i.naturalHeight/i.naturalWidth;const mh=TS*(n==='bld_lab'?h-1.12:h+.08);if(hh>mh){hh=mh;ww=hh*i.naturalWidth/i.naturalHeight}}
  const bx=x*TS+TS/2,by=y*TS+TS+TS*.06;cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality='high';if(al!=null)cx.globalAlpha=al;
+ /* 주인공이 나무·건물 뒤에 서면 앞의 그림을 반쯤 비춰서 주인공이 보이게 */
+ {const P=window.HPOS;if(P&&hh>TS*1.2&&p[0]!=='tallgrass'&&y>P.ry-.01&&bx+ww/2>P.x-TS*.3&&bx-ww/2<P.x+TS*.3&&by-hh<P.bot&&by>P.top)cx.globalAlpha=(al!=null?al:1)*.5}
  const sc=hscaled(p[0],ww,hh)||i;
  if(p[0]==='tallgrass'){const sk=Math.sin(now/600+x*1.7+y)*.06;cx.save();cx.translate(bx,by);cx.transform(1,0,sk,1,0,0);cx.drawImage(sc,-ww/2,-hh,ww,hh);cx.restore()}
  else cx.drawImage(sc,Math.round(bx-ww/2),Math.round(by-hh));
@@ -1799,7 +1809,7 @@ const onScr=id=>$('#'+id)&&$('#'+id).classList.contains('on');
 function handleBack(){
  if(onScr('battle')){if($('#ov').classList.contains('on')){const b=[...$$('#ov.on button')].find(x=>/닫기|계속|확인|좋아요|반가워|고마워/.test(x.textContent));if(b){b.click();return}}toast('전투 중에는 뒤로 갈 수 없어요. 「도망」을 눌러요');return}
  if($('#ov').classList.contains('on')){
-  const B=[...$$('#ov.on button')];const b=B.find(x=>/^\s*(닫기|취소|다시 쓰기|나중에|다시 올게요|계속하기)\s*$/.test(x.textContent))||B.find(x=>/닫기|취소/.test(x.textContent));
+  const B=[...$$('#ov.on button')];const b=B.find(x=>/^\s*(닫기|취소|다시 쓰기|나중에|다시 올게요|계속하기|나가기)\s*$/.test(x.textContent))||B.find(x=>/닫기|취소/.test(x.textContent));
   if(b){b.click();if(typeof busy!=='undefined'&&!$('#ov').classList.contains('on'))busy=false}else toast('화면의 버튼을 눌러 주세요');return}
  if(onScr('page')){if(USER&&USER.teacher&&FROM!=='teacherBoard'&&$('#page .ttabs')){exitAsk();return}pageBack();return}
  if(onScr('mapS')){leaveMap();return}
