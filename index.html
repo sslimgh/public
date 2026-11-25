@@ -7,7 +7,7 @@
 /* ===== 앱 연결 블록 =====
    GAME_API: Apps Script 웹 앱 주소 (배포 → 배포 관리에서 복사). 주소가 바뀌면 이 줄만 고치면 돼요. */
 var GAME_API = 'https://script.google.com/macros/s/AKfycbyIZFRfFzw1CxQVlUGipbgrTUoXPoOvkNB-Zo5Yp3ha5YIlCOwdy7ix9xaSQrDFasDo/exec';
-var APP_BUILD = '7';
+var APP_BUILD = '8';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
  var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})}
 </script>
@@ -287,6 +287,11 @@ img[src^="data:image/webp"]{image-rendering:auto!important;object-fit:contain}
 @media (max-width:389px){#teamDots{display:none}}
 #mini{width:auto!important;height:auto!important;max-width:190px;max-height:250px}
 #mapTop::before{content:'';position:absolute;left:-8px;right:-8px;top:-8px;height:66px;background:linear-gradient(rgba(30,24,44,.42),rgba(30,24,44,0));z-index:-1;pointer-events:none}
+/* 입력칸: 글자를 쓸 수 있게(화면 전체의 선택 막기를 풀어요) */
+input,textarea,select{user-select:text!important;-webkit-user-select:text!important;-webkit-touch-callout:default;touch-action:manipulation}
+/* 키보드가 올라와 화면이 줄어도 첫 화면이 잘리지 않고 밀어서 볼 수 있게 */
+#title{overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important}
+#title>:first-child{margin-top:auto}#title>:last-child{margin-bottom:auto}
 </style></head>
 <body>
 <div id="app">
@@ -918,6 +923,8 @@ addEventListener('load',()=>{if(window.ART3D)document.body.classList.add('art3d'
 
 /* 키보드: 지도는 방향키·WASD, 전투·창은 숫자키와 Enter/Space */
 addEventListener('keydown',e=>{
+ /* 글자를 쓰는 칸에서는 단축키를 쓰지 않아요 (번호 입력 중 화면이 바뀌던 오류) */
+ const tg=e.target;if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||tg.isContentEditable))return;
  const K=e.key,map=$('#mapS')&&$('#mapS').classList.contains('on')&&!$('#ov').classList.contains('on');
  const D={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],W:[0,-1],S:[0,1],A:[-1,0],D:[1,0]}[K];
  if(map&&D){e.preventDefault();if(busy)return;const bx=mv?mv.tx:M.px,by=mv?mv.ty:M.py,nx=bx+D[0],ny=by+D[1];if(D[1]<0)face='_b';else if(D[1]>0)face='';else{face='_s';flip=D[0]<0}
@@ -1515,8 +1522,8 @@ titleScr=function(){
  <div class="lgh">우리 반을 골라 주세요</div>
  <div class="kls" id="kls">${L.length?L.map(c=>`<button class="kb ${c===LG.cls?'on':''}" onclick="LG.cls='${esc(c)}';lgRedraw()">${esc(c)}</button>`).join(''):`<span class="lgwarn">${LG.err||'반 목록을 불러오는 중이에요…'}</span>`}</div>
  <div class="lgh">번호와 이름을 적어 주세요</div>
- <div class="lgrow"><input id="inN" class="inp num" type="number" inputmode="numeric" min="0" max="40" placeholder="22" oninput="lgReset()"><span class="lgb">번</span><input id="inM" class="inp" maxlength="8" placeholder="김혜화" oninput="lgReset()"></div>
- <div class="lgrow" id="pwRow" style="${LG.needPw?'':'display:none'}"><input id="inP" class="inp" type="password" inputmode="numeric" maxlength="8" placeholder="🔒 비밀번호"></div>
+ <div class="lgrow"><input id="inN" class="inp num" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" placeholder="22" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);lgReset()"><span class="lgb">번</span><input id="inM" class="inp" maxlength="8" placeholder="김혜화" oninput="lgReset()"></div>
+ <div class="lgrow" id="pwRow" style="${LG.needPw?'':'display:none'}"><input id="inP" class="inp" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="🔒 비밀번호"></div>
  <div class="lgh">처음이면 주인공과 첫 바르미를 골라요</div>
  <div class="lgheroes">${HEROES.map(([k,n])=>`<button class="lgp ${k===pickHero?'on':''}" onclick="pickHero='${k}';lgRedraw()"><img src="${IMG('h_'+k+'_f')}"></button>`).join('')}</div>
  <div class="lgstart">${['f1','f3','f5'].map(k=>`<button class="lgp s ${k===pickStart?'on':''}" onclick="pickStart='${k}';lgRedraw()"><img src="${HI(SP[k].bari)}"><span>${SP[k].n}</span></button>`).join('')}</div>
@@ -1562,7 +1569,7 @@ function pickName(cls){
  $('#title').innerHTML=`<h2>${esc(cls)}</h2><div id="nmL" class="small">명단을 불러오는 중…</div><button class="btn w sm" onclick="pickClass()">← 반 다시 고르기</button>`;
  rpc('getRoster',[],cls).then(L=>{
   if(L&&L.length)$('#nmL').outerHTML=`<div class="small" style="margin-bottom:6px">내 이름을 눌러요</div><div class="nmg">${L.map(n=>`<button class="btn w sm" onclick="loginName('${esc(cls)}','${esc(n)}')">${esc(n)}</button>`).join('')}</div>`;
-  else $('#nmL').outerHTML=`<div class="card"><div class="small">번호와 이름을 써요</div><div class="grid2" style="grid-template-columns:80px 1fr"><input id="inN" class="inp" type="number" inputmode="numeric" placeholder="번호"><input id="inM" class="inp" placeholder="이름"></div>
+  else $('#nmL').outerHTML=`<div class="card"><div class="small">번호와 이름을 써요</div><div class="grid2" style="grid-template-columns:80px 1fr"><input id="inN" class="inp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" placeholder="번호" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,2)"><input id="inM" class="inp" placeholder="이름"></div>
    <button class="btn" style="margin-top:8px" onclick="const n=parseInt($('#inN').value,10),m=$('#inM').value.replace(/\\s+/g,'');if(!(n>0&&n<60)||!m){toast('번호와 이름을 써 주세요');return}loginName('${esc(cls)}',n+'번 '+m)">들어가기</button></div>`;
  }).catch(()=>{$('#nmL').innerHTML='인터넷 연결을 확인해 주세요.'});
 }
