@@ -1,5 +1,5 @@
 /* 바른글 원정대 앱 — 크게 바뀌면 아래 번호를 올려요 (휴대폰이 새 버전을 받아요) */
-const CACHE='bareungeul-v12';
+const CACHE='bareungeul-v13';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).catch(()=>{}))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(K=>Promise.all(K.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

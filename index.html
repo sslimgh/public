@@ -7,7 +7,7 @@
 /* ===== 앱 연결 블록 =====
    GAME_API: Apps Script 웹 앱 주소 (배포 → 배포 관리에서 복사). 주소가 바뀌면 이 줄만 고치면 돼요. */
 var GAME_API = 'https://script.google.com/macros/s/AKfycbyIZFRfFzw1CxQVlUGipbgrTUoXPoOvkNB-Zo5Yp3ha5YIlCOwdy7ix9xaSQrDFasDo/exec';
-var APP_BUILD = '12';
+var APP_BUILD = '13';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
  var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})}
 </script>
@@ -668,6 +668,13 @@ function bfs(tx,ty,adj){
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(k in prev||!passable(nx,ny))continue;prev[k]=x+','+y;q.push([nx,ny])}}
  return null;
 }
+const KEYDIR={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],KeyW:[0,-1],KeyS:[0,1],KeyA:[-1,0],KeyD:[1,0],w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],W:[0,-1],S:[0,1],A:[-1,0],D:[1,0],'ㅈ':[0,-1],'ㄴ':[0,1],'ㅁ':[-1,0],'ㅇ':[1,0]};
+let KEYS=[];const HSRC={key:null,pad:null};
+/* 방향을 누르면: 가던 길(누른 곳으로 걷던 길)은 지금 걸음까지만, 서 있으면 바로 한 걸음 */
+function setHold(src,d){HSRC[src]=d;HOLD=HSRC.key||HSRC.pad;if(HOLD&&typeof M!=='undefined'&&M&&!busy){pending=null;tapQ=null;if(path.length>1)path=path.slice(0,1);if(!mv&&!path.length)holdStep()}}
+function clearHold(){KEYS=[];HSRC.key=null;HSRC.pad=null;HOLD=null;if(typeof padClear==='function')padClear()}
+addEventListener('keyup',e=>{const c=e.code||e.key;const n=KEYS.length;KEYS=KEYS.filter(x=>x[0]!==c&&x[0]!==e.key);if(KEYS.length!==n||KEYDIR[c]){const L=KEYS[KEYS.length-1];setHold('key',L?L[1]:null)}});
+addEventListener('blur',()=>clearHold());
 let HOLD=null,path=[],walkT=0,pending=null,busy=false,mv=null,face='',flip=false;const STEP=170;
 function rpos(now){if(!mv)return [M.px,M.py,0];const p=Math.min(1,(now-mv.t0)/STEP);return [mv.fx+(mv.tx-mv.fx)*p,mv.fy+(mv.ty-mv.fy)*p,p]}
 function onTap(e){
@@ -727,7 +734,9 @@ function loop(now=0){
  if(mv&&(busy||now<mv.t0-500))mv=null;
  if(!busy&&!mv&&!path.length&&HOLD)holdStep();
  if(!busy&&!mv&&path.length){const [x,y]=path[0];mv={fx:M.px,fy:M.py,tx:x,ty:y,t0:now};if(y<M.py)face='_b';else if(y>M.py)face='';else{face='_s';flip=x<M.px}}
- if(mv&&now-mv.t0>=STEP){mv=null;step();if(tapQ&&!busy&&$('#mapS').classList.contains('on')){const q=tapQ;tapQ=null;path=[];tapTile(q[0],q[1])}}
+ if(busy&&HOLD)clearHold();
+ if(mv&&now-mv.t0>=STEP){const t1=mv.t0+STEP;mv=null;step();if(tapQ&&!busy&&$('#mapS').classList.contains('on')){const q=tapQ;tapQ=null;path=[];tapTile(q[0],q[1])}
+  const onExit=(A_().exits||[]).some(e=>e.x===M.px&&e.y===M.py);if(!onExit&&!busy&&!path.length&&HOLD)holdStep();if(!onExit&&!busy&&path.length){const [x,y]=path[0];mv={fx:M.px,fy:M.py,tx:x,ty:y,t0:Math.max(t1,now-STEP*.5)};if(y<M.py)face='_b';else if(y>M.py)face='';else{face='_s';flip=x<M.px}}}
  monsTick(now);draw(now);goalTick(now);
 }
 function draw(now){
@@ -853,7 +862,7 @@ async function answer(ok){
  const m=meM();
  if(ok){
   if(B.rv)B.rvOk=true;
-  const same=SP[m.sp].ty===SP[B.sp].ty||(SP[B.sp].boss&&SP[m.sp].ty==='받침');let dmg=Math.round(powerOf(m,k)*(same?1.5:1));dmg=Math.min(dmg,B.hp);earn(CFG.coinOk);misAdd('ok');
+  const same=SP[m.sp].ty===SP[B.sp].ty||(SP[B.sp].boss&&SP[m.sp].ty==='받침');let dmg=Math.round(powerOf(m,k)*(same?1.5:1));dmg=Math.min(dmg,B.hp);if(!B.boss&&!B.rival&&!B.spared&&dmg>=B.hp&&B.hp>1&&(SV.items.orb||0)>0&&CFG.spare!==false){dmg=B.hp-1;B.spared=true;B.spareNow=true}earn(CFG.coinOk);misAdd('ok');
   const gain=mastOf(q.rule)===3&&q.tier===0?3:6;const ev=teamXP(m,gain);
   P_(`<div class="msg"><div>⭕ 정답! ${same?'효과가 굉장했어요!':''}</div></div>`);
   $('#meImg').classList.remove('lunge');void $('#meImg').offsetWidth;$('#meImg').classList.add('lunge');await sleep(260);
@@ -861,7 +870,7 @@ async function answer(ok){
   save();
   if(ev.length){for(const e of ev)await lvMsg(e);drawMe();hud()}
   if(B.hp<=0)return win();
-  msg(B.hp<=B.max/2&&!B.boss&&!B.rival?'틀리몬이 약해졌어요! 🎒 가방에서 구슬을 던질 수 있어요.':'좋아요! 다음 차례예요.',menu,1400);
+  if(B.spareNow){B.spareNow=false;msg('틀리몬이 겨우 버티고 있어요! 지금 🎒 가방에서 구슬을 던지면 잘 잡혀요.',menu,1800);return}msg(B.hp<=B.max/2&&!B.boss&&!B.rival?'틀리몬이 약해졌어요! 🎒 가방에서 구슬을 던질 수 있어요.':'좋아요! 다음 차례예요.',menu,1400);
  }else{
   addNote(q);
   const fix=`<div class="fix"><span class="wr">${qv(q,q.b)}</span> → ${qv(q,q.a)}</div>`;
@@ -994,9 +1003,8 @@ addEventListener('keydown',e=>{
  /* 글자를 쓰는 칸에서는 단축키를 쓰지 않아요 (번호 입력 중 화면이 바뀌던 오류) */
  const tg=e.target;if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||tg.isContentEditable))return;
  const K=e.key,map=$('#mapS')&&$('#mapS').classList.contains('on')&&!$('#ov').classList.contains('on');
- const D={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],W:[0,-1],S:[0,1],A:[-1,0],D:[1,0]}[K];
- if(map&&D){e.preventDefault();if(busy)return;const bx=mv?mv.tx:M.px,by=mv?mv.ty:M.py,nx=bx+D[0],ny=by+D[1];if(D[1]<0)face='_b';else if(D[1]>0)face='';else{face='_s';flip=D[0]<0}
-  if(mv){tapQ=[nx,ny];path=path.slice(0,1);return}if(nx>=0&&ny>=0&&nx<MW&&ny<MH)tapTile(nx,ny);return}
+ const D=KEYDIR[e.code]||KEYDIR[K];
+ if(map&&D){e.preventDefault();if(e.repeat||busy)return;const c=e.code||K;KEYS=KEYS.filter(x=>x[0]!==c);KEYS.push([c,D]);setHold('key',D);return}
  const vis=el=>el&&el.offsetParent!==null&&!el.disabled;
  const scope=$('#ov').classList.contains('on')?$('#ov'):map?$('#mapAct'):$('.scr.on');
  if(K==='Enter'||K===' '){const m=$('#panel .msg');if(!$('#ov').classList.contains('on')&&vis(m)){e.preventDefault();m.click();return}
@@ -1286,9 +1294,11 @@ const VAL={f1:[0,0],f2:[0,0],f3:[1,0],f4:[1,0],f5:[0,1],f6:[2,0],f7:[1,1],f8:[2,
  n1:[0,0],n2:[2,0],n3:[0,0],n4:[1,0],n5:[3,0],n6:[0,1],n7:[2,0],n8:[0,1],n9:[3,0],n10:[0,1],n11:[1,0],n12:[3,0],n13:[2,0],n14:[0,1],n15:[2,0],n16:[0,1],n17:[3,1]};
 Object.assign(CFG_DEF,{valOn:true,catchMul:'1,2,3,5'});for(const k of['valOn','catchMul'])if(CFG[k]===undefined)CFG[k]=CFG_DEF[k];
 CFG_INFO.push(['valOn','몬마다 능력치 다르게','b','끄면 모든 몬의 체력·공격력·방어력이 같아져요.'],['catchMul','데려올 때 동전 배수 (흔함,보통,희귀,아주 희귀)','t','예: 1,2,3,5 → 데려왔을 때 동전 × 배수']);
-function valOf(sp){if(!CFG.valOn)return [0,0];const v=VAL[sp]||[0,0],r=(SP[sp]||{}).rar||0;return [v[0]+r,v[1]+(r>=2?1:0)]}
+/* 등급이 높을수록 늘 조금 더 세게 (같은 등급 안에서는 몬마다 작은 차이) */
+function valVar(sp){const v=VAL[sp];if(v)return [v[0]>=2?1:0,v[1]>0?1:0];let h=0;for(const c of String(sp))h=(h*31+c.charCodeAt(0))%997;return [h%2,(h>>1)%2]}
+function valOf(sp){if(!CFG.valOn)return [0,0];const r=(SP[sp]||{}).rar||0,[hv,pv]=valVar(sp);return [r*3+hv,r===0?0:r===1?pv:r-1+pv]}
 function catchMul(sp){const a=String(CFG.catchMul||'1,2,3,5').split(',').map(x=>+x||1);return a[Math.min(a.length-1,(SP[sp]||{}).rar||0)]}
-function valStars(sp){const v=valOf(sp),r=(SP[sp]||{}).rar||0;const hp=Math.min(5,1+Math.ceil(v[0]/1.5)),pw=Math.min(5,1+v[1]*2);return `<div class="small" style="white-space:nowrap">체력 <b style="color:#e05a6a">${'●'.repeat(hp)}${'○'.repeat(5-hp)}</b> 힘 <b style="color:#e08a2a">${'●'.repeat(pw)}${'○'.repeat(5-pw)}</b> 가치 <b style="color:#c9a020">${'★'.repeat(r+1)}${'☆'.repeat(3-Math.min(3,r))}</b></div>`}
+function valStars(sp){const v=valOf(sp),r=(SP[sp]||{}).rar||0;const hp=Math.min(5,1+Math.round(v[0]/2.5)),pw=Math.min(5,1+v[1]);return `<div class="small" style="white-space:nowrap">체력 <b style="color:#e05a6a">${'●'.repeat(hp)}${'○'.repeat(5-hp)}</b> 힘 <b style="color:#e08a2a">${'●'.repeat(pw)}${'○'.repeat(5-pw)}</b> 가치 <b style="color:#c9a020">${'★'.repeat(r+1)}${'☆'.repeat(3-Math.min(3,r))}</b></div>`}
 
 if(CFG.rarePity===undefined)CFG.rarePity=40;
 CFG_INFO.push(['rarePity','희귀 바르미 보장','n','흔한 몬이 이 수만큼 나오면 그 장소의 희귀 몬이 한 번 꼭 나와요. 0이면 보장 없음.',0,200]);
@@ -1296,7 +1306,7 @@ AREAS.cave.pool.push('f2');
 
 /* ===================== 능력치 (공격력·방어력) ===================== */
 const TANK=['f3','f6','f8','n2','n5','n7','n9','n12','n13','n15','n17'];
-function defOf(m){if(!CFG.valOn)return m.stage>=3?1:0;return (TANK.includes(m.sp)?1:0)+(m.stage>=3?1:0)}
+function defOf(m){if(!CFG.valOn)return m.stage>=3?1:0;const r=(SP[m.sp]||{}).rar||0;return (r===0?0:r===1?valVar(m.sp)[1]:r-1)+(m.stage>=3?1:0)}
 function defRed(m){let r=0;for(let i=0;i<defOf(m);i++)if(Math.random()<.35)r++;return r}
 const atkN=m=>powerOf(m,'b')*10,defN=m=>10+defOf(m)*10;
 function vBadge(sp,cls=''){const r=SP[sp].rar||0;const t=sp==='n17'?'🌈 전설':RARD[r]+' '+RARN[r];return `<div class="vbadge v${sp==='n17'?'L':r} ${cls}">${t}</div>`}
@@ -1317,13 +1327,19 @@ function padUI(){const s=$('#mapS');if(!s)return;let p=$('#pad');
  if(p)return;
  s.insertAdjacentHTML('beforeend',`<div id="pad"><button data-d="0,-1" class="pu">▲</button><button data-d="-1,0" class="pl">◀</button><button data-d="1,0" class="pr">▶</button><button data-d="0,1" class="pd">▼</button></div><button id="padA" onclick="padAct()">살펴<br>보기</button>`);
  p=$('#pad');
- const start=e=>{const b=e.target.closest('button');if(!b)return;e.preventDefault();const d=b.dataset.d.split(',').map(Number);HOLD=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}};
- const end=e=>{HOLD=null;p.querySelectorAll('button').forEach(x=>x.classList.remove('on'))};
- p.addEventListener('pointerdown',start);p.addEventListener('pointerup',end);p.addEventListener('pointercancel',end);p.addEventListener('lostpointercapture',end);
+ /* 손가락마다 누른 방향을 기억해요. 떼지 않고 옆 버튼으로 밀면 바로 그 방향으로 바뀌어요 */
+ const PT=new Map();
+ const dirAt=(cx,cy)=>{const el=document.elementFromPoint(cx,cy);const b=el&&el.closest&&el.closest('#pad button');return b?b.dataset.d:null};
+ const upd=()=>{const last=[...PT.values()].pop()||null;p.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.d===last));setHold('pad',last?last.split(',').map(Number):null)};
+ const start=e=>{const b=e.target.closest('button');if(!b)return;e.preventDefault();PT.delete(e.pointerId);PT.set(e.pointerId,b.dataset.d);try{b.setPointerCapture(e.pointerId)}catch(_){}upd()};
+ const move=e=>{if(!PT.has(e.pointerId))return;const d=dirAt(e.clientX,e.clientY);if(d&&d!==PT.get(e.pointerId)){PT.delete(e.pointerId);PT.set(e.pointerId,d);upd()}};
+ const end=e=>{if(!PT.has(e.pointerId))return;PT.delete(e.pointerId);upd()};
+ window.padClear=()=>{PT.clear();p.querySelectorAll('button').forEach(x=>x.classList.remove('on'))};
+ p.addEventListener('pointerdown',start);p.addEventListener('pointermove',move);p.addEventListener('pointerup',end);p.addEventListener('pointercancel',end);p.addEventListener('lostpointercapture',end);
  p.addEventListener('contextmenu',e=>e.preventDefault());
 }
 const _mapInfo=mapInfo;mapInfo=function(){_mapInfo();padUI()};
-document.addEventListener('visibilitychange',()=>{HOLD=null});
+document.addEventListener('visibilitychange',()=>{clearHold()});
 
 /* ===================== 🎨 장소마다 다른 바닥 · 깔끔하게 이어지는 길과 물가 ===================== */
 const THEMES=['village','trail','wetland','cave','hill','forest','spring'];
@@ -1635,6 +1651,8 @@ function goalNew(o){if(!confirm('지금 목표를 끝내고 새 목표를 시작
  if(o==='TCFG'){rpc('adminGoalStart',[USER.tk]).then(r=>{if(r&&r.ok){TCFG.goalBase=r.cfg.goalBase;TCFG.goalRound=r.cfg.goalRound;toast('새 목표를 시작했어요');tCfg({cfg:Object.assign({},TCFG,{pwReq:TCFG.pwReq})})}else toast('시작하지 못했어요')}).catch(()=>toast('인터넷 연결을 확인해 주세요'));return}
  CFG.goalRound=(CFG.goalRound||1)+1;cfgSave();toast('새 목표를 시작했어요');teacherScr()}
 function muteCard(){if(!CFG.sound&&!CFG.vib)return '';return `<div class="card"><label style="font-size:18px"><input type="checkbox" ${SV&&SV.set&&SV.set.mute?'checked':''} onchange="SV.set.mute=this.checked;save()"> 🔇 내 소리·진동 끄기</label><div class="small">선생님이 효과음을 켰을 때 나만 끌 수 있어요.</div></div>`}
+/* 들판 몬이 한 번에 쓰러지지 않게 (선생님 설정) */
+{CFG_DEF.spare=true;if(CFG.spare===undefined)CFG.spare=true;CFG_INFO.push(['spare','들판 몬이 한 번에 쓰러지지 않기','b','켜면 처음 한 번은 체력 1에서 버텨서 구슬로 잡을 기회가 생겨요. (구슬이 있을 때만)'])}
 
 /* =====================================================================
    맞춤법 거리 (두 번째 지역) — 그림은 아직 임시 그림이에요.
