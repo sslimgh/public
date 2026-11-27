@@ -7,7 +7,7 @@
 /* ===== 앱 연결 블록 =====
    GAME_API: Apps Script 웹 앱 주소 (배포 → 배포 관리에서 복사). 주소가 바뀌면 이 줄만 고치면 돼요. */
 var GAME_API = 'https://script.google.com/macros/s/AKfycbyIZFRfFzw1CxQVlUGipbgrTUoXPoOvkNB-Zo5Yp3ha5YIlCOwdy7ix9xaSQrDFasDo/exec';
-var APP_BUILD = '2026-11-27';
+var APP_BUILD = '2026-11-27-2';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
  var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})}
 </script>
@@ -485,6 +485,10 @@ const SKILL={'소리':{t:'소리 물결',u:'메아리 폭발',x:'귀 쫑긋',xd:
  '받침':{t:'받침 쾅',u:'받침 대폭발',x:'새싹 회복',xd:'체력 4 회복'}};
 const PP={t:5,u:2,x:2};
 const LVXP=[0,0,20,50,95,160,240,330,440,560,700,860,1040,1240,1460,1700];
+/* 레벨 한계 없음: 15 다음부터는 한 레벨에 필요한 경험치가 20씩 늘어요 (16은 +260, 17은 +280 …) */
+for(let i=16,d=260;i<=999;i++,d+=20)LVXP[i]=LVXP[i-1]+d;
+/* 능력치에 쓰는 레벨: 15까지는 그대로, 그 뒤로는 한 레벨에 0.1씩만 (아주 천천히 강해져요) */
+function effLv(lv){return lv<=15?lv:15+(lv-15)*0.1}
 const HEROES=[['boy1','모험가'],['curly','곱슬머리'],['spiky','삐죽머리'],['beret','탐정'],['girl1','긴머리'],['bob','단발머리'],['pony','포니테일'],['braid','땋은머리']];
 const DEXT={"f1": ["소리 속성", "소리가 비슷해서 헷갈리는 모음 ㅐ와 ㅔ, ㅢ (개미, 그네, 무늬)", "노란 물방울 몸에 하늘색 더듬이가 있어요.", "더듬이로 아주 작은 소리도 들어요. 그런데 ㅐ와 ㅔ는 너무 닮아서 자꾸 헷갈려요. 바르미가 되면 낱말을 통째로 기억하는 법을 알려 줘요.", "물방울 아기 → 나팔 귀 꼬마 → 모음 날개 요정"], "f2": ["소리 속성", "헷갈리는 자음 ㄷ과 ㅌ, ㄱ과 ㅋ·ㄲ, ㅅ과 ㅆ (타조, 코끼리, 아저씨)", "네모난 블록 몸이에요.", "블록을 쌓아 글자를 만드는 걸 좋아해요. 그런데 비슷한 블록을 잘못 끼워서 ‘다조’를 만들곤 해요. 바르미가 되면 소리를 끝까지 듣고 블록을 고르라고 말해 줘요.", "블록 아기 → 로봇 꼬마 → 자음 갑옷 기사"], "f3": ["받침 속성", "받침을 빠뜨리거나 다르게 쓰는 말 (연필, 신발, 수박)", "연두 몸에 새싹 두 잎, 배에 노란 별이 있어요.", "숲에서 가장 흔하게 만나는 몬이에요. 받침을 땅에 심어 키우는데, 가끔 받침 씨앗을 잃어버려요. 바르미가 되면 받침을 꼭꼭 챙기라고 알려 줘요.", "새싹 아기 → 꽃봉오리 꼬마 → 꽃 망토 어른"], "f4": ["받침 속성", "받침이 뒤 글자로 넘어가 소리 나는 말 (책꽂이 [책꼬지], 할아버지 [하라버지])", "꼬리가 말린 청록 올챙이예요.", "연못에서 글자 사이를 폴짝폴짝 건너뛰며 놀아요. 그러다 받침을 뒤 글자에 붙여 버리는 장난을 쳐요. 바르미가 되면 “소리는 넘어가도 글자는 제자리!”를 외쳐요.", "올챙이 → 개구리 꼬마 → 연잎 왕관 개구리 왕"], "f5": ["받침 속성", "된소리로 들려도 그대로 쓰는 말 (학교 [학꾜], 약국 [약꾹])", "동그란 북 모양 몸이에요.", "말할 때마다 둥! 하고 소리가 세게 울려요. 그래서 들리는 대로 ‘학꾜’라고 써 버려요. 바르미가 되면 세게 들려도 글자는 순하게 쓰라고 알려 줘요.", "북 아기 → 북채 든 꼬마 → 큰북 장수"], "f6": ["받침 속성", "쌍받침 ㄲ, ㅆ이 들어간 말 (깎고, 낚시, 볶음밥)", "꼭 붙어 다니는 쌍둥이 콩이에요.", "둘이 절대 떨어지지 않아요. 한 명만 쓰면 다른 한 명이 서운해서 울어요. 바르미가 되면 받침 둘을 나란히 써 주라고 알려 줘요.", "쌍둥이 콩 아기 → 손잡은 콩 꼬마 → 머리 둘 콩나무 거인"], "f7": ["받침 속성", "받침 ㅅ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ이 다른 소리로 나는 말 (꽃병 [꼳뼝], 부엌, 무릎, 숲)", "꼬불꼬불한 껍데기를 진 달팽이예요.", "껍데기 속에 받침을 숨겨 다녀요. 겉으로는 [ㄷ], [ㄱ], [ㅂ] 소리만 들려서 진짜 받침을 찾기 어려워요. 바르미가 되면 껍데기를 열어 진짜 받침을 보여 줘요.", "달팽이 아기 → 더듬이 꼬마 → 소용돌이 성 기사"], "f8": ["받침 속성", "겹받침이 들어간 말 (없다, 많다, 괜찮아)", "양파처럼 겹겹이 싸인 몸이에요.", "받침을 두 겹으로 입고 다녀요. 소리는 한 겹만 들리지만, 쓸 때는 두 겹을 다 입혀야 해요. 바르미가 되면 숨은 겹까지 꼭 쓰라고 알려 줘요.", "양파 아기 → 꽃봉오리 꼬마 → 겹꽃잎 요정"], "k0": ["받침 속성 · 대장", "받침 숲에서 배운 모든 것", "오타 잉크에 물든 커다란 고목이에요.", "오래전 숲의 받침들을 지키던 나무 할아버지였어요. 오타 잉크에 물들어 받침을 뒤죽박죽 섞어 버렸어요. 이기면 잉크가 걷히고 웃는 얼굴로 돌아와요.", ""]};
 
@@ -523,9 +527,9 @@ function stageName(m){const n=SP[m.sp].n;return m.stage===1?'아기 '+n:m.stage=
 function mImg4(m){const k=SP[m.sp].bari+(m.stage>1?'_'+m.stage:'');return IMG(k+'@4')||mImg(m)}
 function mImg(m){const k=SP[m.sp].bari+(m.stage>1?'_'+m.stage:'');return IMG(k+'@2')||IMG(k)||IMG(SP[m.sp].bari+'@2')}
 const HI=k=>IMG(k+'@2')||IMG(k);const HI4=k=>IMG(k+'@4')||HI(k);
-function maxHp(m){return 10+(m.lv-1)+3*(m.stage-1)+(typeof valOf==='function'?valOf(m.sp)[0]:0)}
+function maxHp(m){return 10+Math.floor(effLv(m.lv)-1)+3*(m.stage-1)+(typeof valOf==='function'?valOf(m.sp)[0]:0)}
 function mkMon(sp,lv=1){const m={sp,lv,xp:LVXP[lv],stage:lv>=5&&!isLegend(sp)?2:1,pp:{...PP},hp:0,shiny:false,got:dayNum()};m.hp=maxHp(m);return m}
-function powerOf(m,k){return ({b:2,t:3,u:4}[k]||2)+(m.stage-1)+Math.floor(m.lv/6)+(typeof valOf==='function'?valOf(m.sp)[1]:0)}
+function powerOf(m,k){return ({b:2,t:3,u:4}[k]||2)+(m.stage-1)+Math.floor(effLv(m.lv)/6)+(typeof valOf==='function'?valOf(m.sp)[1]:0)}
 
 /* ---------- 실력 (숙련도·난이도) ---------- */
 function mastOf(rule){const a=SV.mast[rule]||[];if(a.length<5)return 0;const r=a.slice(-5).filter(Boolean).length/5;return r>=.8?3:r>=.4?2:1}
@@ -783,18 +787,24 @@ function grassC(){for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(tile(x,y)==='C'&&
 
 /* ===================== 전투 ===================== */
 let B=null;
+/* 처음 만난 바르미: 이 지역에서 아직 못 만난 친구가 몇 마리 남았는지 */
+function meetGroup(sp){if(typeof FOREST_SP!=='undefined'&&FOREST_SP.includes(sp))return ['받침 숲',FOREST_SP];if(typeof TOWN_SP!=='undefined'&&TOWN_SP.includes(sp))return ['맞춤법 거리',TOWN_SP];
+ if(typeof REGIONS2!=='undefined')for(const R of Object.values(REGIONS2))if(R.list.includes(sp))return [R.name,R.list];return null}
+function meetLeft(sp){const g=meetGroup(sp);if(!g)return '';const left=g[1].filter(k=>!(SV.dex[k]||{}).seen).length;
+ return `<div class="small" style="margin-top:4px">${left?`${g[0]}에서 아직 못 만난 친구 <b>${left}마리</b> 남았어요`:`🎉 ${g[0]} 친구를 모두 만났어요!`}</div>`}
 function startBattle(o){
  busy=true;const s=SP[o.sp];
- const rar=SP[o.sp].rar||0,TL=Math.max(...SV.team.map(m=>m.lv)),AL=(A_().lvl||0),max=o.rival?o.hp+Math.floor(TL/2):o.boss?CFG.bossHp+TL:6+2*AL+rar+(o.shiny?1:0)+Math.floor(TL/2);
+ const rar=SP[o.sp].rar||0,TL=Math.floor(effLv(Math.max(...SV.team.map(m=>m.lv)))),AL=(A_().lvl||0),max=o.rival?o.hp+Math.floor(TL/2):o.boss?CFG.bossHp+TL:6+2*AL+rar+(o.shiny?1:0)+Math.floor(TL/2);
  B={sp:o.sp,rival:o.rival||null,stage:o.stage||1,boss:!!o.boss,shiny:!!o.shiny,rv:o.rv||null,hp:max,max,me:SV.team.findIndex(m=>m.hp>0),hint:false,first:true,rvOk:false};
  if(B.me<0)B.me=0;
  if(!o.boss&&!o.rival){if(B.shiny)SV.pity=0;else SV.pity++}
+ const isNew=!o.rival&&!o.boss&&!(SV.dex[o.sp]||{}).seen;
  if(!o.rival){SV.dex[o.sp]=SV.dex[o.sp]||{};SV.dex[o.sp].seen=1}save();
  $('#bField').classList.remove('rage');
  const fi=$('#foeImg');fi.src=o.rival?IMG(s.bari+(B.stage>1?'_'+B.stage:'')):HI4(s.img);fi.className=B.shiny?'shiny':B.rv?'rv':'';{const o=$('#foeWrap .vbadge');o&&o.remove();if(!s.boss&&!B.rv)fi.insertAdjacentHTML('beforebegin',vBadge(B.sp,'bt'))}fi.style.opacity=1;fi.style.transform='';
  drawMe();hud();show('battle');fitBattle();
  const intro=o.rival?`${RV?RVWHO[RV.n][0].split(' ').pop():'또박이'}가 ${josa(s.n,'을','를')} 내보냈어요!`:B.boss?`${s.n}이 길을 막았어요!`:B.rv?`공책에서 ${josa('되살아난 '+s.n,'이','가')} 나타났어요!`:B.shiny?`✨ 반짝이는 ${josa(s.n,'이','가')} 나타났어요!`:`${josa(s.n,'이','가')} 나타났어요!`;
- msg(intro,()=>menu());
+ msg(isNew?`🆕 처음 만난 바르미예요!<br>${intro}${meetLeft(o.sp)}`:intro,()=>menu(),isNew?2600:undefined);
 }
 function meM(){return SV.team[B.me]}
 function drawMe(){const m=meM();$('#meImg').src=mImg4(m);$('#meImg').style.opacity=1}
@@ -884,7 +894,7 @@ async function answer(ok){
 function whyQ(id){const q=QB.find(x=>x.id===id);clearTimeout(msgT);P_(`<div class="msg"><div class="tipbox">${esc(q.tip)}</div><div class="small">📚 ${qGr(q)} · ${esc(srcNice(q.src))}</div></div><button class="btn sm" onclick="menu()">알겠어요</button>`)}
 function addNote(q){if(SV.notes.some(n=>n.q===q.id&&n.st<2))return;SV.notes.push({q:q.id,day:dayNum(),st:0});if(SV.notes.length>60)SV.notes.shift();save()}
 async function foeAttack(){
- const m=meM();const rage=B.boss&&B.hp<=B.max/2;const TL=Math.max(...SV.team.map(x=>x.lv)),dmg=Math.max(1,(B.boss?(rage?5:4):B.rival?3+(B.stage-1):2+(A_().lvl||0))+Math.floor(TL/4)-defRed(m));
+ const m=meM();const rage=B.boss&&B.hp<=B.max/2;const TL=Math.floor(effLv(Math.max(...SV.team.map(x=>x.lv)))),dmg=Math.max(1,(B.boss?(rage?5:4):B.rival?3+(B.stage-1):2+(A_().lvl||0))+Math.floor(TL/4)-defRed(m));
  $('#foeImg').classList.remove('flunge');void $('#foeImg').offsetWidth;$('#foeImg').classList.add('flunge');await sleep(250);
  fxAt('fx_ink','me',{size:1,cls:'fxsplat',ms:800});shakeField(rage);m.hp=Math.max(0,m.hp-dmg);$('#meImg').classList.remove('hit');void $('#meImg').offsetWidth;$('#meImg').classList.add('hit');fxDmg(dmg,'me');hud();await sleep(650);save();
 }
@@ -1931,7 +1941,7 @@ function nickHas(){const c=nick().charCodeAt(nick().length-1);return c>=0xAC00&&
 function callN(){return nick()+(nickHas()?'아':'야')}
 function nickI(){return nick()+(nickHas()?'이':'')}
 function nameFill(s){return String(s).replace(/\{N\}/g,callN()).replace(/\{M\}/g,nick()).replace(/\{I\}/g,nickI())}
-function nickAsk(first){busy=true;const v=first?(SV.nick||nickDefault()):nick();
+function heroNameAsk(first){busy=true;const v=first?(SV.nick||nickDefault()):nick();
  ov(`<div class="card"><div style="font-size:30px">🧭</div><div style="font-size:20px;margin:2px 0 6px">${first?'탐험가 이름을 지어 주세요':'탐험가 이름 바꾸기'}</div>
  <div class="small" style="margin-bottom:8px">${first?'박사님과 친구들이 이 이름으로 불러 줄 거예요.':'오늘 바꾸면 내일 다시 바꿀 수 있어요.'}</div>
  <input id="nkIn" class="inp" maxlength="6" value="${esc(v)}" placeholder="예: 가람" style="text-align:center;font-size:22px"><div class="small" id="nkErr" style="color:#c0392b;min-height:20px;margin-top:4px"></div>
@@ -1943,9 +1953,9 @@ function nickOk(first){const s=String($('#nkIn').value||'').replace(/\s/g,''),er
  const changed=SV.nick&&SV.nick!==s;SV.nick=s;if(!first&&changed)SV.nickDay=today();save();ovOff();busy=false;
  toast(first?`반가워, ${callN()}! 멋진 모험을 시작해 보자!`:`이제부터 「${s}」${nickHas()?'이라고':'라고'} 부를게요!`,2400);if(!first&&typeof setScr==='function'&&$('#page').classList.contains('on'))setScr()}
 function nickCard(){if(!SV)return '';const can=CFG.nickEdit&&SV.nickDay!==today();
- return `<div class="card"><div style="font-size:17px">🧭 탐험가 이름: <b>${esc(nick())}</b></div>${!CFG.nickEdit?'<div class="small">이름 바꾸기는 선생님이 꺼 두었어요.</div>':can?'<button class="btn w sm" style="margin-top:6px" onclick="nickAsk(false)">✏️ 이름 바꾸기</button><div class="small">하루에 한 번 바꿀 수 있어요.</div>':'<div class="small">오늘은 이미 이름을 바꿨어요. 내일 다시 바꿀 수 있어요.</div>'}</div>`}
-{const _sn=startNew;startNew=function(){_sn.apply(this,arguments);setTimeout(()=>{if(SV&&!SV.nick)nickAsk(true)},350)}}
-{const _gs=goShelter;goShelter=function(){_gs.apply(this,arguments);if(SV&&!SV.nick&&!$('#ov').classList.contains('on'))setTimeout(()=>{if(SV&&!SV.nick&&!$('#ov').classList.contains('on'))nickAsk(true)},350)}}
+ return `<div class="card"><div style="font-size:17px">🧭 탐험가 이름: <b>${esc(nick())}</b></div>${!CFG.nickEdit?'<div class="small">이름 바꾸기는 선생님이 꺼 두었어요.</div>':can?'<button class="btn w sm" style="margin-top:6px" onclick="heroNameAsk(false)">✏️ 이름 바꾸기</button><div class="small">하루에 한 번 바꿀 수 있어요.</div>':'<div class="small">오늘은 이미 이름을 바꿨어요. 내일 다시 바꿀 수 있어요.</div>'}</div>`}
+{const _sn=startNew;startNew=function(){_sn.apply(this,arguments);setTimeout(()=>{if(SV&&!SV.nick)heroNameAsk(true)},350)}}
+{const _gs=goShelter;goShelter=function(){_gs.apply(this,arguments);if(SV&&!SV.nick&&!$('#ov').classList.contains('on'))setTimeout(()=>{if(SV&&!SV.nick&&!$('#ov').classList.contains('on'))heroNameAsk(true)},350)}}
 /* 인물들이 이름을 불러 줘요 */
 RVLINE[1][0]='어이, {M}! 너도 원정대야? 나는 또박이!';RVLINE[2][0]='{M}, 여기까지 왔구나! '+String(RVLINE[2][0]).replace(/^여기까지 왔구나!\s*/,'');
 for(const k of['cave','hill','market','school'])if(RVLINE[k])RVLINE[k][0]='{N}, '+RVLINE[k][0];
@@ -2235,7 +2245,7 @@ function battleBgKey(){const R=typeof regOfArea==='function'?regOfArea(areaId())
  return IMG('bg3d')?'bg3d':'bg_forest'}
 
 /* ===================== 바른글 원정대 완전판: 반 입장 · 서버 저장 · 순위 · 게시판 · 선물 · 교환 · 선생님 화면 ===================== */
-const APPV='1.2';
+const APPV='1.3';
 const ONLINE=typeof GAME_API==='string'&&/^https?:\/\//.test(GAME_API)&&GAME_API.indexOf('여기에')<0;
 let USER=null;               // {cls,name,pw} 또는 {cls,name,tk,teacher:true,main}
 let PEND_ST=null;            // 서버에서 합쳐 돌려준 기록 (쉼터에서 받아들여요)
@@ -2265,7 +2275,7 @@ function fixState(){if(!SV)return;[...(SV.team||[]),...(SV.box||[])].forEach(m=>
 const _load=load;load=function(){_load();fixState()};
 save=function(){if(!SV)return;fixState();try{fixMons()}catch(e){}try{localStorage.setItem(KEY,JSON.stringify(SV,(k,v)=>k==='map'?undefined:v))}catch(e){}NET.dirty=true};
 function svJSON(){const o=JSON.parse(JSON.stringify(SV,(k,v)=>k==='map'?undefined:v));delete o.rev;return o}
-function canSync(){return ONLINE&&USER&&!USER.teacher&&!USER.guest&&SV}
+function canSync(){return ONLINE&&USER&&(!USER.teacher||USER.play)&&!USER.guest&&SV}
 function syncNow(force){
  if(!canSync()||NET.busy)return Promise.resolve();
  if(!force&&!NET.dirty)return Promise.resolve();
@@ -2355,7 +2365,7 @@ function lgGo(){
 function lgTeacher(n,p){
  if(!p){LG.needPw=true;const r=$('#pwRow');if(r){r.style.display='';$('#inP').placeholder='🔒 선생님 비밀번호';$('#inP').focus()}toast('선생님 비밀번호를 넣고 다시 눌러 주세요');return}
  rpc('teacherCheck',[n+'|'+p],LG.cls).then(r=>{if(!r.ok){const tn=String(r.teacher||'').replace(/\s+/g,''),mn=String(n).replace(/^0번\s*/,'').replace(/\s+/g,'');toast(tn&&tn!==mn?`선생님 이름이 달라요. 구글 시트 「설정」 탭에 적힌 이름(${tn})으로 써 주세요`:'선생님 비밀번호가 달라요. 구글 시트 「설정」 탭의 비밀번호를 확인해 주세요',5000);return}const o=ls.get('bg_tname')||{};o[LG.cls]=n;ls.set('bg_tname',o);
-  USER={cls:LG.cls,name:n,tk:n+'|'+p,teacher:true,main:r.main};T_TAB='st';tScr()}).catch(e=>toast(netWhy(e),5000))}
+  USER={cls:LG.cls,name:n,tk:n+'|'+p,teacher:true,main:r.main};T_TAB='st';tChoose()}).catch(e=>toast(netWhy(e),5000))}
 function pickClass(teacher){
  $('#title').innerHTML=`<h2>${teacher?'선생님 반 고르기':'우리 반을 골라요'}</h2><div id="clsL" class="small">반 목록을 불러오는 중…</div><button class="btn w sm" onclick="titleScr()">← 뒤로</button>`;show('title');
  const draw=L=>{$('#clsL').outerHTML=`<div class="clsg">${L.map(c=>`<button class="btn w" onclick="${teacher?`teacherLogin('${esc(c)}')`:`pickName('${esc(c)}')`}">${esc(c)}</button>`).join('')}</div>`};
@@ -2454,12 +2464,12 @@ function rankScr(t){if(!USER){toast('인터넷으로 접속하면 볼 수 있어
 
 /* ---------- 💬 우리 반 게시판 ---------- */
 function boardScr(){pageWrap('💬 우리 반 게시판','<div class="small">불러오는 중…</div>');rpc('getPosts',[]).then(drawBoard).catch(()=>pageWrap('💬 우리 반 게시판','<div class="card">인터넷 연결을 확인해 주세요.</div>'))}
-function drawBoard(r){const me=USER.teacher?'0번 '+USER.name:USER.name;
+function drawBoard(r){const me=myName();
  pageWrap('💬 우리 반 게시판',`${r.open||USER.teacher?`<div class="card"><input id="bTx" class="inp" maxlength="80" placeholder="친구들에게 한마디 (80자)"><button class="btn sm" style="margin-top:6px" onclick="postGo()">올리기</button></div>`:'<div class="card small">선생님이 글쓰기를 잠시 닫았어요.</div>'}
  ${r.posts.map(p=>`<div class="card post"><div class="small">${esc(p.name)} · ${esc(p.at)}</div><div style="font-size:16px;margin:4px 0">${esc(p.text)}</div><button class="mini" onclick="likeGo(${p.id})">${p.likes.indexOf(me)>=0?'❤️':'🤍'} ${p.likes.length}</button>${USER.teacher?` <button class="mini" onclick="if(confirm('이 글을 숨길까요?'))rpc('adminPostDel',[USER.tk,${p.id}]).then(drawBoard)">숨기기</button>`:''}</div>`).join('')||'<div class="small">첫 글을 남겨 보세요!</div>'}`)}
-function postGo(){const t=$('#bTx').value.trim();if(!t)return;const nm=USER.teacher?'0번 '+USER.name:USER.name;
+function postGo(){const t=$('#bTx').value.trim();if(!t)return;const nm=myName();
  rpc('postBoard',[nm,USER.pw||'',t]).then(r=>{if(r.ok)drawBoard(r);else toast({bad:'고운 말을 써 주세요',fast:'조금 있다가 다시 써요',closed:'글쓰기가 닫혀 있어요',pw:'다시 들어와 주세요'}[r.why]||'올리지 못했어요')}).catch(()=>toast('인터넷 연결을 확인해 주세요'))}
-function likeGo(id){rpc('likePost',[id,USER.teacher?'0번 '+USER.name:USER.name]).then(drawBoard).catch(()=>{})}
+function likeGo(id){rpc('likePost',[id,myName()]).then(drawBoard).catch(()=>{})}
 
 /* ---------- 🔁 바르미 교환 ----------
  * 서버의 교환 기록을 보고 내 기록을 맞춰요 (몇 번을 해도 같은 결과: 두 번 받거나 잃어버리지 않아요) */
@@ -2512,7 +2522,7 @@ function teacherLogin(cls){
 }
 function teacherGo(cls){const n=$('#tN').value.replace(/\s+/g,''),p=$('#tP').value.trim();const tk=n+'|'+p;
  rpc('teacherCheck',[tk],cls).then(r=>{if(!r.ok){toast('이름이나 비밀번호가 달라요');return}const o=ls.get('bg_tname')||{};o[cls]=n;ls.set('bg_tname',o);
-  USER={cls,name:n,tk,teacher:true,main:r.main};T_TAB='st';tScr()}).catch(()=>toast('인터넷 연결을 확인해 주세요'))}
+  USER={cls,name:n,tk,teacher:true,main:r.main};T_TAB='st';tChoose()}).catch(()=>toast('인터넷 연결을 확인해 주세요'))}
 let T_TAB='st',TD=null;
 const T_TABS=[['st','👧 학생'],['an','📊 문제 분석'],['cfg','⚙️ 게임 설정'],['gift','🎁 선물'],['board','💬 게시판'],['trade','🔁 교환'],['guard','🛟 기록 지킴이'],['pw','🔒 비밀번호'],['etc','🧹 초기화']];
 function tWrap(h){$('#page').innerHTML=`<div class="top"><button class="mini" onclick="USER=null;titleScr()">나가기</button><div class="t">👩‍🏫 ${esc(USER.cls)}</div></div>
@@ -2583,7 +2593,7 @@ function tEtc(){tWrap(`<div class="card"><div style="font-size:16px">🧹 ${esc(
  <button class="btn w sm" onclick="if(confirm('정말 ${esc(USER.cls)} 모든 학생 기록을 지울까요?')&&prompt('확인을 위해 「초기화」라고 써 주세요')==='초기화')rpc('adminResetAll',[USER.tk]).then(r=>toast(r.n+'명 초기화했어요'))">모두 초기화</button></div>
  <div class="card small">학생별 자동 로그인 주소와 QR은 구글 시트 메뉴 「🌿 바른글 원정대 → 학생별 자동 로그인 주소 만들기」에서 만들어요. (「학생 명단」 탭에 번호·이름을 먼저 써 주세요)</div>`)}
 /* 선생님이 게시판에서 돌아올 때 */
-const _pageBack=pageBack;pageBack=function(){if(FROM==='title'){FROM='shelter';titleScr();return}if(USER&&USER.teacher){tScr();return}_pageBack()};
+const _pageBack=pageBack;pageBack=function(){if(FROM==='title'){FROM='shelter';titleScr();return}if(USER&&USER.teacher&&!USER.play){tScr();return}_pageBack()};
 
 /* ===================== 📱 휴대폰 뒤로가기 · 끝내기 =====================
  * 뒤로가기를 눌러도 앱이 꺼지지 않고 게임 안에서 한 칸 뒤로 가요.
@@ -2693,5 +2703,70 @@ function tExam(){const T=TD.tests||{},S=TD.students.slice().sort((a,b)=>(parseIn
  const tryAdd=(n)=>{const c=$('#ov .card');if(!c||!c.querySelector('.dexh')){if(n<30)setTimeout(()=>tryAdd(n+1),100);return}
   c.querySelector('.dexh').insertAdjacentHTML('beforebegin',`<div class="dexh">🎓 학년군 실력 평가</div>${L.sort().map(k=>`<div class="small">• ${k.slice(0,1)}~${k.slice(1,2)}학년군 ${k.slice(2)}형: 처음 ${T[k].first}점 · 최고 ${T[k].best}점 · ${T[k].tries}번</div>`).join('')}`)};tryAdd(0)}}
 }
+
+/* ===================== 선생님: 🎮 탐험하기 / 🛠 관리하기 · 🧪 점검 도구 · 🏆 순위 (모든 기록) ===================== */
+function myName(){return USER.teacher&&!/^0번 /.test(USER.name)?'0번 '+USER.name:USER.name}
+function tName(){return String(USER.tn||USER.name).replace(/^0번\s*/,'')}
+function tPin(){return USER.tk.slice(USER.tk.indexOf('|')+1)}
+/* 로그인하면 먼저 고르기 */
+function tChoose(){USER.tn=tName();USER.name=USER.tn;USER.play=false;
+ $('#title').innerHTML=`<h2>👩‍🏫 ${esc(USER.tn)} 선생님</h2><div class="card" style="text-align:center">
+ <button class="btn" onclick="tPlay()">🎮 탐험하기</button><div class="small" style="margin:4px 0 12px">학생과 똑같은 게임이에요. 기록은 학교 서버에 따로 저장되고, 순위·반 목표에는 안 들어가요.</div>
+ <button class="btn w" onclick="tAdmin()">🛠 관리하기</button></div><button class="btn w sm" onclick="USER=null;titleScr()">← 처음 화면</button>`;show('title')}
+function tAdmin(){if(USER.play){try{syncNow(true)}catch(e){}}USER.play=false;USER.name=tName();if(!T_TAB)T_TAB='st';tScr()}
+function tPlay(){const n=tName(),p=tPin();USER.play=true;USER.name='0번 '+n;USER.pw=p;
+ const key=userKey(USER);if(SV&&KEY===key&&SV.team&&SV.team.length){goShelter();return}
+ KEY=key;$('#title').innerHTML=`<h2>${esc(USER.name)}</h2><div class="small">기록을 불러오는 중…</div>`;show('title');
+ rpc('loadState',[USER.name,p],USER.cls).then(r=>{
+  if(r&&r.pw){toast('선생님 비밀번호를 다시 확인해 주세요',4000);tChoose();return}
+  let local=null;try{local=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  let srv=null;try{srv=r&&r.s?JSON.parse(r.s):null}catch(e){srv=null}
+  if(srv&&srv.reset)srv=null;
+  SV=srv&&local?BG_MERGE.merge(srv,local):srv||local;
+  if(SV){SV.rev=r.v||0;fixState();save();NET.dirty=!!local;afterLogin();goShelter()}else newScr();
+ }).catch(e=>{toast(netWhy(e),5000);tChoose()})}
+/* 관리 화면 위에 「🎮 탐험」 버튼 */
+{const _tw=tWrap;tWrap=function(h){_tw(h);const t=$('#page .top');if(t&&USER&&USER.teacher&&!$('#tPlayB'))t.insertAdjacentHTML('beforeend','<button id="tPlayB" class="mini" onclick="tPlay()">🎮 탐험</button>')}}
+/* 쉼터·메뉴에 「🛠 관리」「🧪 점검」 */
+{const _ss=shelterScr;shelterScr=function(){const r=_ss.apply(this,arguments);try{const g=$('#shelter .grid2');if(g&&USER&&USER.play&&!$('#tAdmB'))g.insertAdjacentHTML('beforeend','<button id="tAdmB" class="btn w sm" onclick="tAdmin()">🛠 관리하기</button><button class="btn w sm" onclick="tTools()">🧪 점검 도구</button>')}catch(e){}return r}}
+{const _gm=gameMenu;gameMenu=function(){const r=_gm.apply(this,arguments);try{const g=$('#ov .mgrid');if(g&&USER&&USER.play)g.insertAdjacentHTML('beforeend','<button onclick="ovOff();tTools()">🧪<b>점검</b></button><button onclick="ovOff();tAdmin()">🛠<b>관리</b></button>')}catch(e){}return r}}
+
+/* ---------- 🧪 점검 도구 (선생님 탐험에서만) ---------- */
+function tTools(){if(!USER||!USER.play)return;const L=allMons();
+ ov(`<div class="card" style="max-height:82vh;overflow:auto"><div style="font-size:18px">🧪 점검 도구 <span class="small">(선생님만 보여요)</span></div>
+ <div class="sec">바르미 레벨 올리기</div>${L.map(({m,w,i})=>`<div style="display:flex;gap:4px;align-items:center;margin:3px 0"><span style="flex:1">${esc(stageName(m))} Lv.${m.lv}</span><button class="mini" onclick="tLv('${w}',${i},1)">+1</button><button class="mini" onclick="tLv('${w}',${i},5)">+5</button><button class="mini" onclick="tLv('${w}',${i},20)">+20</button></div>`).join('')||'<div class="small">아직 바르미가 없어요.</div>'}
+ <div class="sec">채우기</div><div class="grid2"><button class="mini" onclick="SV.items.orb=(SV.items.orb||0)+20;save();toast('🔮 구슬 +20')">🔮 구슬 +20</button><button class="mini" onclick="earn(500);save();toast('🪙 동전 +500')">🪙 동전 +500</button><button class="mini" onclick="SV.items.candy=(SV.items.candy||0)+10;save();toast('🍬 사탕 +10')">🍬 사탕 +10</button><button class="mini" onclick="L_heal()">💖 모두 회복</button></div>
+ <div class="sec">지역으로 바로 가기</div><select id="tA" class="inp">${Object.keys(AREAS).map(k=>`<option value="${k}" ${k===areaId()?'selected':''}>${esc(AREAS[k].n||k)}</option>`).join('')}</select><button class="btn w sm" onclick="tGo($('#tA').value)">가기</button>
+ <div class="sec">바로 싸우기</div><select id="tS" class="inp">${Object.keys(SP).filter(k=>!/^k\d/.test(k)).map(k=>`<option value="${k}">${esc(SP[k].n||k)}</option>`).join('')}</select>
+ <div class="grid2"><button class="mini" onclick="tFight({sp:$('#tS').value,lv:Math.min(15,(SV.team[0]||{lv:1}).lv)})">⚔️ 이 몬과</button><button class="mini" onclick="tFight(null,1)">🧢 라이벌 1</button><button class="mini" onclick="tFight(null,2)">🧢 라이벌 2</button></div>
+ <div class="grid2" style="margin-top:4px">${[['forest','🌲 숲 대장'],['tower','🕰️ 거리 대장'],['dr7','🏜️ 사막 대장'],['cs7','🏰 성 대장']].filter(x=>AREAS[x[0]]).map(([a,n])=>`<button class="mini" onclick="tBoss('${a}')">👑 ${n}</button>`).join('')}</div>
+ <button class="btn w sm" style="margin-top:8px" onclick="ovOff()">닫기</button></div>`)}
+function L_heal(){SV.team.forEach(m=>m.hp=maxHp(m));save();toast('💖 모두 회복했어요')}
+function tLv(w,i,n){const m=(w==='t'?SV.team:SV.box)[i];if(!m)return;const to=m.lv+n;if(!LVXP[to])return;const e=giveXP(m,Math.max(0,LVXP[to]-m.xp));save();
+ if(e&&e.evo)evoShow({m,evo:e.evo},()=>tTools());else{toast(stageName(m)+' Lv.'+m.lv+(e&&e.wait?' (마지막 진화는 규칙 연습이 더 필요해요)':''));tTools()}}
+function tSpot(id){for(const k in AREAS){const x=(AREAS[k].exits||[]).find(e=>e.to===id);if(x)return [x.tx,x.ty]}return []}
+function tGo(id){ovOff();const s=tSpot(id);const go=()=>goArea(id,s[0],s[1]);if(!onScr('mapS')){enterMap();setTimeout(go,250)}else go()}
+function tFight(o,rv){ovOff();const f=()=>{if(rv)rivalGo(rv);else startBattle(o)};if(!onScr('mapS')){enterMap();setTimeout(f,350)}else f()}
+function tBoss(a){const s=tSpot(a);ovOff();const go=()=>{goArea(a,s[0],s[1]);setTimeout(()=>startBattle({sp:AREAS[a].boss||'k0',boss:true}),400)};if(!onScr('mapS')){enterMap();setTimeout(go,300)}else go()}
+
+/* ---------- 🏆 우리 반 순위: 모든 기록 ---------- */
+const RANKS={
+ lvSum:['🏅 레벨 합계','lvSum','점'],lvMax:['⭐ 최고 레벨','lvMax','Lv'],mons:['🐾 가진 바르미','mons','마리'],caught:['📖 도감','caught','마리'],
+ seen:['👀 만난 몬','seen','마리'],evo:['✨ 진화','evo','마리'],badges:['🎖️ 배지','badges','개'],ok:['✅ 맞힌 문제','ok','개'],
+ acc:['🎯 정답률','acc','%'],score:['🌟 등급 점수','score','점'],days:['📅 출석','days','일'],coin:['🪙 동전','coin','개']};
+RANK_T='lvSum';
+rankScr=function(t){if(!USER){toast('인터넷으로 접속하면 볼 수 있어요');return}if(t&&RANKS[t])RANK_T=t;if(!RANKS[RANK_T])RANK_T='lvSum';pageWrap('🏆 우리 반 순위','<div class="small">불러오는 중…</div>');
+ rpc('getBoard',[myName()]).then(r=>{
+  if(r.off){pageWrap('🏆 우리 반 순위','<div class="card">선생님이 순위표를 꺼 두었어요. 내 기록은 원정 수첩에서 볼 수 있어요.</div>');return}
+  const T=RANKS[RANK_T],k=T[1];let L=r.list.map(x=>Object.assign({},x,{[k]:Number(x[k])||0}));
+  const few=k==='acc'?L.filter(x=>(x.tot||0)<20):[];if(k==='acc')L=L.filter(x=>(x.tot||0)>=20);
+  L.sort((a,b)=>b[k]-a[k]||a.name.localeCompare(b.name,'ko',{numeric:true}));
+  let rk=0,prev=null;L.forEach((x,i)=>{if(x[k]!==prev){rk=i+1;prev=x[k]}x.rk=rk});
+  const nm=x=>esc(CFG.nickRank&&x.nick?x.nick:x.name),unit=v=>(T[2]==='Lv'?'Lv.'+v:v+T[2]);
+  pageWrap('🏆 우리 반 순위',`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">${Object.keys(RANKS).map(x=>`<button class="mini" style="${x===RANK_T?'background:#ffd54a;font-weight:bold':''}" onclick="rankScr('${x}')">${RANKS[x][0]}</button>`).join('')}</div>
+  <div class="rank">${L.map(x=>`<div class="rrow ${x.name===USER.name?'me':''}"><b>${x.rk<=3?['🥇','🥈','🥉'][x.rk-1]:x.rk}</b><span>${nm(x)}</span><span class="small">${esc(x.grade||'')}</span><b>${unit(x[k])}</b></div>`).join('')||'<div class="small">아직 기록이 없어요.</div>'}</div>
+  ${few.length?`<div class="small" style="margin-top:6px">🎯 정답률은 문제를 20개 이상 푼 친구만 나와요.</div>`:''}
+  ${k==='lvSum'?'<div class="small" style="margin-top:6px">가진 바르미 모두의 레벨을 더한 점수예요. 새 버전에서 한 번 저장하면 나와요.</div>':''}`);
+ }).catch(()=>pageWrap('🏆 우리 반 순위','<div class="card">인터넷 연결을 확인해 주세요.</div>'))};
 </script>
 </body></html>
