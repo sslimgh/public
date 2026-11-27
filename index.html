@@ -7,7 +7,7 @@
 /* ===== 앱 연결 블록 =====
    GAME_API: Apps Script 웹 앱 주소 (배포 → 배포 관리에서 복사). 주소가 바뀌면 이 줄만 고치면 돼요. */
 var GAME_API = 'https://script.google.com/macros/s/AKfycbyIZFRfFzw1CxQVlUGipbgrTUoXPoOvkNB-Zo5Yp3ha5YIlCOwdy7ix9xaSQrDFasDo/exec';
-var APP_BUILD = '2026-11-27-2';
+var APP_BUILD = '2026-11-27-4';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
  var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})}
 </script>
@@ -629,7 +629,7 @@ function noteScr(){
 }
 function setScr(){
  pageWrap('⚙️ 설정',`${typeof nickCard==='function'?nickCard():''}${muteCard()}<div class="card"><button class="btn sm" onclick="teacherGate()">👩‍🏫 선생님 설정</button><div class="small">시간 제한, 교환, 순위표, 동전과 값, 라이벌, 임무, 출석, 희귀 바르미를 모두 여기서 정해요.</div></div>
- <div class="card"><label style="font-size:18px"><input type="checkbox" ${SV.set.pm?'checked':''} onchange="SV.set.pm=this.checked;save()"> 오후로 보기</label><div class="small">겹겹몬은 오후 3시 이후에만 나와요. 시험해 보려면 켜요.</div></div>
+ 
  <div class="card"><button class="btn w sm" onclick="SV.dayOff++;save();toast('하루가 지났어요. 공책의 틀린 문제가 숲에 나와요')">📅 하루 지나기 (시험용)</button><div class="small">공책의 극복 기능을 시험할 때 써요.</div></div>
  <div class="card"><button class="btn w sm" onclick="SV.items.orb+=5;SV.items.candy+=3;save();toast('구슬 5개, 사탕 3개를 받았어요')">🎁 구슬·사탕 받기 (시험용)</button></div>`);
 }
@@ -942,8 +942,8 @@ async function throwOrb(){
 function caught(){
  const s=SP[B.sp];const d=SV.dex[B.sp]=SV.dex[B.sp]||{};const dup=d.caught;d.caught=1;if(B.shiny)d.shiny=1;SV.log.catch++;
  let where='';
- if(dup&&!B.shiny){SV.items.candy++;where='이미 있는 친구라서 🍬 성장 사탕이 되었어요.'}
- else{const m=mkMon(B.sp,1);m.shiny=B.shiny;if(SV.team.length<3){SV.team.push(m);where='팀에 들어왔어요!'}else{SV.box.push(m);where='팀이 꽉 차서 쉼터 상자로 갔어요.'}}
+ if(dup&&!B.shiny&&CFG.dupKeep===false){SV.items.candy++;where='이미 있는 친구라서 🍬 성장 사탕이 되었어요.'}
+ else{const m=mkMon(B.sp,1);m.shiny=B.shiny;if(SV.team.length<3){SV.team.push(m);where='팀에 들어왔어요!'}else{SV.box.push(m);where='팀이 꽉 차서 쉼터 상자로 갔어요.'}if(dup)where+='<br>같은 친구가 한 마리 더 생겼어요! 🐾 바르미에서 ✏️ 별명을 지어 주면 구별하기 쉬워요.'}
  if(B.rv)overcome();earn(CFG.coinCatch*catchMul(B.sp));misAdd('catch');
  const ev=teamXP(meM(),10);save();
  sfx('catch');vib([40,60,40]);
@@ -1061,14 +1061,14 @@ function stampCheck(){if(!CFG.attend)return;const d=today();if(SV.stamp.last===d
  if(SV.stamp.n===7){SV.items.orb+=3;setTimeout(()=>toast('🎉 출석 7일! 바른 구슬 3개를 받았어요'),600)}else setTimeout(()=>toast(`📅 출석 도장 ${SV.stamp.n}/7 · 동전 ${CFG.coinStamp}개`),600);save()}
 /* ===================== 희귀도 ===================== */
 const RARN=['흔함','보통','희귀','아주 희귀'],RARD=['●','●●','●●●','★'];
-const RARHINT={f1:'새싹 오솔길 위쪽 끝 풀숲에 아주 가끔 나타나요',f2:'버섯 동굴 깊은 곳(위쪽)에 아주 가끔 나타나요',f3:'고목 깊은숲 어딘가에 아주 가끔 나타나요',f8:'오후 3시가 지나면 꽃잎 언덕 위쪽에 아주 가끔 나타나요',f4:'강가 습지 풀숲에 가끔 나타나요',f5:'버섯 동굴과 고목 깊은숲에 가끔 나타나요',f6:'강가 습지 물가 풀숲에 가끔 나타나요',f7:'꽃잎 언덕 꽃 옆 풀숲에 가끔 나타나요',n17:'무지개 샘의 전설'};
+const RARHINT={f1:'새싹 오솔길 위쪽 끝 풀숲에 아주 가끔 나타나요',f2:'버섯 동굴 깊은 곳(위쪽)에 아주 가끔 나타나요',f3:'고목 깊은숲 어딘가에 아주 가끔 나타나요',f8:'꽃잎 언덕 위쪽에 아주 가끔 나타나요',f4:'강가 습지 풀숲에 가끔 나타나요',f5:'버섯 동굴과 고목 깊은숲에 가끔 나타나요',f6:'강가 습지 물가 풀숲에 가끔 나타나요',f7:'꽃잎 언덕 꽃 옆 풀숲에 가끔 나타나요',n17:'무지개 샘의 전설'};
 function nearT(x,y,c){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(tile(x+dx,y+dy)===c)return true;return false}
 function rareOk(k,x,y){const r=SP[k].rar||0,a=areaId();if(r>=2&&!CFG.rare)return false;
  if(k==='f1')return a==='trail'?y<=7:true;
  if(k==='f2')return a==='cave'?y<=6:true;
  if(k==='f6')return a==='wetland'?nearT(x,y,'W'):true;
  if(k==='f7')return a==='hill'?nearT(x,y,'F'):true;
- if(k==='f8')return (a==='hill'?y<=8:a==='forest'?y<=6:true)&&(SV.set.pm||new Date().getHours()>=15);
+ if(k==='f8')return (a==='hill'?y<=8:a==='forest'?y<=6:true);
  return true}
 /* 희귀도별 나오는 무게: 흔함 10, 보통 5, 희귀 1.5, 아주 희귀 0.6 (선생님 설정 배수 곱함) */
 const RW=[10,5,1.5,.6];
@@ -1191,7 +1191,7 @@ function labTalk(){const c=Object.values(SV.dex||{}).filter(d=>d.caught).length,
  ov(`<div class="card"><div style="font-size:20px">🔬 바름 박사 연구소</div><div class="small" style="margin:6px 0 10px">박사님은 지금 분수대 옆에 나가 계셔요.<br>책상 위에 연구 노트가 펼쳐져 있어요.</div>
  <div class="card" style="background:#fff8e6;margin:0 0 10px"><div style="font-size:16px">📓 받침 숲 바르미 연구 노트</div><div style="font-size:22px;margin:4px 0">데려온 친구 ${c} / 25</div><div class="small">본 친구 ${s}마리 · 오솔길, 습지, 동굴, 언덕마다 사는 친구가 달라요.<br>도감을 다 채우면 전설의 정음새를 만날 수 있대요.</div></div>
  <div class="grid2"><button class="btn w sm" onclick="ovOff();FROM='map';dexScr()">📖 도감 보기</button><button class="btn sm" onclick="ovOff()">나가기</button></div></div>`)}
-const RUMORS=['오늘은 강가 풀숲에 쌍쌍몬이 자주 보인대!','꽃이 핀 풀숲 근처를 잘 살펴봐. 꼬불몬이 숨어 있을지도 몰라.','오후 3시가 지나면 간판 너머 풀숲에 겹겹몬이 나온다는 소문이 있어.','오솔길 나무 위에서 다람몬을 봤다는 아이가 있었어.','반짝이는 몬은 아주 드물게 나온대. 끝까지 찾아봐!'];
+const RUMORS=['오늘은 강가 풀숲에 쌍쌍몬이 자주 보인대!','꽃이 핀 풀숲 근처를 잘 살펴봐. 꼬불몬이 숨어 있을지도 몰라.','간판 너머 풀숲에 겹겹몬이 아주 가끔 나온다는 소문이 있어.','오솔길 나무 위에서 다람몬을 봤다는 아이가 있었어.','반짝이는 몬은 아주 드물게 나온대. 끝까지 찾아봐!'];
 function npcTalk(id){const n=(A_().npc||[]).find(x=>x.id===id);if(!n)return;busy=true;SV.quests=SV.quests||{};
  const face=`<img class="rvimg" src="${IMG('h_'+n.h+'_f')}"><div class="rvn" style="color:#3a5a9a">${esc(n.n)}</div>`;
  if(n.talk==='leader'){busy=false;leaderTalk(n.tr);return}
@@ -2768,5 +2768,9 @@ rankScr=function(t){if(!USER){toast('인터넷으로 접속하면 볼 수 있어
   ${few.length?`<div class="small" style="margin-top:6px">🎯 정답률은 문제를 20개 이상 푼 친구만 나와요.</div>`:''}
   ${k==='lvSum'?'<div class="small" style="margin-top:6px">가진 바르미 모두의 레벨을 더한 점수예요. 새 버전에서 한 번 저장하면 나와요.</div>':''}`);
  }).catch(()=>pageWrap('🏆 우리 반 순위','<div class="card">인터넷 연결을 확인해 주세요.</div>'))};
+
+/* ---------- 잡은 바르미도 다시 잡기 (선생님 설정으로 끌 수 있어요. 끄면 예전처럼 사탕) ---------- */
+CFG_DEF.dupKeep=true;if(CFG.dupKeep===undefined)CFG.dupKeep=true;
+if(typeof CFG_INFO!=='undefined')CFG_INFO.push(['dupKeep','잡은 바르미도 다시 데려오기','b','켜면 이미 잡은 바르미도 한 마리 더 데려와요(별명으로 구별). 끄면 성장 사탕 1개로 바뀌어요.']);
 </script>
 </body></html>
